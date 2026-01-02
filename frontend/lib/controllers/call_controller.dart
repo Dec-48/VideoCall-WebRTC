@@ -9,6 +9,8 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 class CallController extends GetxController {
   RxBool isMuted = false.obs;
   RxBool isConnected = false.obs;
+  RxBool isSocketReady = false.obs;
+  RxBool isPeerConnectionReady = false.obs;
 
   final localRenderer = RTCVideoRenderer();
   final remoteRenderer = RTCVideoRenderer();
@@ -17,7 +19,6 @@ class CallController extends GetxController {
   WebSocketChannel? channel;
 
   final String webSocketUrl = "ws://localhost:8080/socket";
-  bool isSocketReady = false;
 
   @override
   void onClose() {
@@ -29,83 +30,6 @@ class CallController extends GetxController {
     peerConnection?.close();
     channel?.sink.close();
     super.onClose();
-  }
-
-  void sendMessage(SignalMessage message) {
-    channel?.sink.add(jsonEncode(message.toJson()));
-  }
-
-  Future<void> joinRoom(String roomId) async {
-    try {
-      await setupPeerConnection();
-
-      channel = WebSocketChannel.connect(Uri.parse(webSocketUrl));
-      await channel!.ready;
-      isSocketReady = true;
-
-      sendMessage(SignalMessage(type: "join", roomId: roomId)); // join to room
-
-      channel!.stream.listen(
-        (event) {
-          final message = SignalMessage.fromJson(jsonDecode(event));
-          onMessage(message);
-        },
-        onError: (error) {
-          if (kDebugMode) {
-            print("Socket Error (onError): $error");
-          }
-        },
-        onDone: () {
-          if (kDebugMode) {
-            print("Socket Closed");
-          }
-          isConnected.value = false;
-        },
-      );
-    } catch (error) {
-      if (kDebugMode) {
-        print("Socket Error (catch): $error");
-      }
-    }
-  }
-
-  Future<void> onMessage(SignalMessage message) async {
-    switch (message.type) {
-      case "offer": //* recieving offer
-        if (message.sdp != null) {
-          final Map<String, dynamic> desc = message.sdp!;
-          await peerConnection!.setRemoteDescription(
-            RTCSessionDescription(desc["sdp"], desc["type"]),
-          );
-          RTCSessionDescription answerSdp = await peerConnection!
-              .createAnswer();
-          await peerConnection!.setLocalDescription(answerSdp);
-
-          //* sending our sdp back
-          sendMessage(SignalMessage(type: "answer", sdp: answerSdp.toMap()));
-        }
-        break;
-      case "answer": //* recieving answer
-        if (message.sdp != null) {
-          final Map<String, dynamic> desc = message.sdp!;
-          await peerConnection!.setRemoteDescription(
-            RTCSessionDescription(desc["sdp"], desc["type"]),
-          );
-        }
-        break;
-      case "candidate": // this will be run when other recieved our offer and found thier iceCandidate(path way)
-        if (message.candidate != null && peerConnection != null) {
-          final candidate = message.candidate!;
-          await peerConnection!.addCandidate(
-            RTCIceCandidate(
-              candidate["candidate"],
-              candidate["spdMid"],
-              candidate["spdMLineIndex"],
-            ),
-          );
-        }
-        break;
-    }
   }
 
   Future<void> setupPeerConnection() async {
@@ -153,6 +77,85 @@ class CallController extends GetxController {
         SignalMessage(type: "candidate", candidate: candidate.toMap()),
       );
     };
+
+    isPeerConnectionReady.value = true;
+  }
+
+  void sendMessage(SignalMessage message) {
+    channel?.sink.add(jsonEncode(message.toJson()));
+  }
+
+  Future<void> onMessage(SignalMessage message) async {
+    switch (message.type) {
+      case "offer": //* recieving offer
+        if (message.sdp != null) {
+          final Map<String, dynamic> desc = message.sdp!;
+          await peerConnection!.setRemoteDescription(
+            RTCSessionDescription(desc["sdp"], desc["type"]),
+          );
+          RTCSessionDescription answerSdp = await peerConnection!
+              .createAnswer();
+          await peerConnection!.setLocalDescription(answerSdp);
+
+          //* sending our sdp back
+          sendMessage(SignalMessage(type: "answer", sdp: answerSdp.toMap()));
+        }
+        break;
+      case "answer": //* recieving answer
+        if (message.sdp != null) {
+          final Map<String, dynamic> desc = message.sdp!;
+          await peerConnection!.setRemoteDescription(
+            RTCSessionDescription(desc["sdp"], desc["type"]),
+          );
+        }
+        break;
+      case "candidate": // this will be run when other recieved our offer and found thier iceCandidate(path way)
+        if (message.candidate != null && peerConnection != null) {
+          final candidate = message.candidate!;
+          await peerConnection!.addCandidate(
+            RTCIceCandidate(
+              candidate["candidate"],
+              candidate["spdMid"],
+              candidate["spdMLineIndex"],
+            ),
+          );
+        }
+        break;
+    }
+  }
+
+  Future<void> joinRoom(String roomId) async {
+    try {
+      await setupPeerConnection();
+
+      channel = WebSocketChannel.connect(Uri.parse(webSocketUrl));
+      await channel!.ready;
+      isSocketReady.value = true;
+
+      sendMessage(SignalMessage(type: "join", roomId: roomId)); // join to room
+
+      channel!.stream.listen(
+        (event) {
+          final message = SignalMessage.fromJson(jsonDecode(event));
+          onMessage(message);
+        },
+        onError: (error) {
+          if (kDebugMode) {
+            print("Socket Error (onError): $error");
+          }
+        },
+        onDone: () {
+          if (kDebugMode) {
+            print("Socket Closed");
+          }
+          isConnected.value = false;
+        },
+      );
+    } catch (error) {
+      if (kDebugMode) {
+        print("Socket Error (catch): $error");
+      }
+    }
   }
 
   Future<void> startCall() async {
@@ -163,7 +166,7 @@ class CallController extends GetxController {
       await setupPeerConnection();
     }
 
-    if (!isSocketReady || channel == null) {
+    if (!isSocketReady.value || channel == null) {
       if (kDebugMode) {
         print("Socket not ready yet. Please wait.");
         return;
