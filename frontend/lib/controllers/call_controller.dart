@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -17,6 +19,12 @@ class CallController extends GetxController {
   MediaStream? localStream;
   RTCPeerConnection? peerConnection;
   WebSocketChannel? channel;
+
+  final Queue<SignalMessage> messageQueue =
+      Queue<SignalMessage>(); // buffer for all incoming message
+  final Queue<RTCIceCandidate> candidateBuffer =
+      Queue<RTCIceCandidate>(); // buffer for incoming ice candidate
+  bool isProcessQueue = false;
 
   final String webSocketUrl = "ws://localhost:8080/socket";
 
@@ -72,6 +80,7 @@ class CallController extends GetxController {
     };
 
     //* sending our candidate(path way) to other
+    //* this fires immediately after we successfully set local desc
     peerConnection!.onIceCandidate = (candidate) {
       sendMessage(
         SignalMessage(type: "candidate", candidate: candidate.toMap()),
@@ -85,7 +94,40 @@ class CallController extends GetxController {
     channel?.sink.add(jsonEncode(message.toJson()));
   }
 
-  Future<void> onMessage(SignalMessage message) async {
+  void enqueueMessage(SignalMessage message) {
+    messageQueue.add(message);
+    if (!isProcessQueue) {
+      processQueue();
+    }
+  }
+
+  Future<void> processQueue() async {
+    isProcessQueue = true;
+    while (messageQueue.isNotEmpty) {
+      final message = messageQueue.removeFirst();
+      try {
+        await computeMessage(message);
+      } catch (e) {
+        if (kDebugMode) print("Error processing ${message.type}: $e");
+      }
+    }
+    isProcessQueue = false;
+  }
+
+  Future<void> flushCandidateBuffer() async {
+    while (candidateBuffer.isNotEmpty) {
+      try {
+        final candidate = candidateBuffer.removeFirst();
+        await peerConnection?.addCandidate(candidate);
+      } catch (e) {
+        if (kDebugMode) {
+          print("Error on adding candidate");
+        }
+      }
+    }
+  }
+
+  Future<void> computeMessage(SignalMessage message) async {
     switch (message.type) {
       case "offer": //* recieving offer
         if (message.sdp != null) {
@@ -93,10 +135,13 @@ class CallController extends GetxController {
           await peerConnection!.setRemoteDescription(
             RTCSessionDescription(desc["sdp"], desc["type"]),
           );
+
+          //* strictly add candidate to our peer connection after set remote desc
+          await flushCandidateBuffer(); 
+
           RTCSessionDescription answerSdp = await peerConnection!
               .createAnswer();
           await peerConnection!.setLocalDescription(answerSdp);
-
           //* sending our sdp back
           sendMessage(SignalMessage(type: "answer", sdp: answerSdp.toMap()));
         }
@@ -107,18 +152,28 @@ class CallController extends GetxController {
           await peerConnection!.setRemoteDescription(
             RTCSessionDescription(desc["sdp"], desc["type"]),
           );
+
+          //* strictly add candidate to our peer connection after set remote desc
+          await flushCandidateBuffer();
         }
         break;
       case "candidate": // this will be run when other recieved our offer and found thier iceCandidate(path way)
         if (message.candidate != null && peerConnection != null) {
-          final candidate = message.candidate!;
-          await peerConnection!.addCandidate(
-            RTCIceCandidate(
-              candidate["candidate"],
-              candidate["spdMid"],
-              candidate["spdMLineIndex"],
-            ),
+          final data = message.candidate!;
+          final candidate = RTCIceCandidate(
+            data["candidate"],
+            data["sdpMid"],
+            data["sdpMLineIndex"] ?? 0,
           );
+          final currentRemoteDesc = await peerConnection
+              ?.getRemoteDescription();
+          if (currentRemoteDesc != null) {
+
+            //* strictly add candidate to our peer connection after set remote desc
+            await peerConnection!.addCandidate(candidate);
+          } else {
+            candidateBuffer.add(candidate);
+          }
         }
         break;
     }
@@ -137,7 +192,7 @@ class CallController extends GetxController {
       channel!.stream.listen(
         (event) {
           final message = SignalMessage.fromJson(jsonDecode(event));
-          onMessage(message);
+          enqueueMessage(message);
         },
         onError: (error) {
           if (kDebugMode) {

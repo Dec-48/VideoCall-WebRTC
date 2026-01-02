@@ -40,6 +40,7 @@ class SignalingHandler : TextWebSocketHandler() {
                     if (clients != null) {
                         for (client in clients) {
                             if (client.isOpen && client.id != session.id) {
+                                println("${client.id} -> ${message.payload} ")
                                 client.sendMessage(message) // forward the message
                             }
                         }

@@ -31,23 +31,30 @@ class _CallScreenState extends State<CallPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Room : $roomId")),
-      body: Obx(() {
-        if (callController.isSocketReady.value &&
-            callController.isPeerConnectionReady.value) {
-          return buildCallPage();
-        } else {
-          return const Center(
-            child: Text(
-              "Connection not ready...",
-              style: TextStyle(fontSize: 18),
-            ),
-          );
-        }
-      }),
+      body: Stack(
+        children: [
+          Obx(() {
+            bool isConnectionReady =
+                callController.isSocketReady.value &&
+                callController.isPeerConnectionReady.value;
+            if (isConnectionReady) {
+              return buildRemoteFrame();
+            } else {
+              return const Center(
+                child: Text(
+                  "Setting up the connection...",
+                  style: TextStyle(fontSize: 18),
+                ),
+              );
+            }
+          }),
+          buildLocalFrame(),
+        ],
+      ),
     );
   }
 
-  Stack buildCallPage() {
+  Stack buildRemoteFrame() {
     return Stack(
       children: [
         Obx(() {
@@ -62,37 +69,16 @@ class _CallScreenState extends State<CallPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(),
-                  Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Text(
-                      "Waiting for partner...",
-                      style: TextStyle(fontSize: 18),
-                    ),
+                  SizedBox(height: 10,),
+                  Text(
+                    "Waiting for partner...",
+                    style: TextStyle(fontSize: 18),
                   ),
                 ],
               ),
             );
           }
         }),
-
-        Positioned(
-          right: 20,
-          top: 20,
-          child: SizedBox(
-            height: 125,
-            width: 140,
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.deepPurple),
-              ),
-              child: RTCVideoView(
-                callController.localRenderer,
-                mirror: true,
-                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-              ),
-            ),
-          ),
-        ),
 
         Positioned(
           bottom: 30,
@@ -110,6 +96,27 @@ class _CallScreenState extends State<CallPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Positioned buildLocalFrame() {
+    return Positioned(
+      right: 20,
+      top: 20,
+      child: SizedBox(
+        height: 90,
+        width: 120,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.deepPurple, width: 2),
+          ),
+          child: RTCVideoView(
+            callController.localRenderer,
+            mirror: true,
+            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+          ),
+        ),
+      ),
     );
   }
 }
