@@ -13,6 +13,7 @@ class CallController extends GetxController {
   RxBool isConnected = false.obs;
   RxBool isSocketReady = false.obs;
   RxBool isPeerConnectionReady = false.obs;
+  bool isCaller = false;
 
   final localRenderer = RTCVideoRenderer();
   final remoteRenderer = RTCVideoRenderer();
@@ -27,6 +28,22 @@ class CallController extends GetxController {
   bool isProcessQueue = false;
 
   final String webSocketUrl = "ws://localhost:8080/socket";
+
+  @override
+  void onInit() {
+    ever(isConnected, (callback) {
+      if (isSocketReady.value && isPeerConnectionReady.value) {
+        if (isConnected.value && isCaller) {
+          Future.delayed(const Duration(milliseconds: 500), () {
+          // ignore: avoid_print
+          print("Triggering 2nd Call to fix video...");
+          startCall();  //! temporary way to fix bug
+       });
+        }
+      }
+    },);
+    super.onInit();
+  }
 
   @override
   void onClose() {
@@ -227,6 +244,7 @@ class CallController extends GetxController {
       }
     }
 
+    isCaller = true;
     RTCSessionDescription offer = await peerConnection!.createOffer();
     await peerConnection!.setLocalDescription(offer);
 

@@ -30,95 +30,154 @@ class _CallScreenState extends State<CallPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Room : $roomId")),
+      backgroundColor: Colors.black,
       body: Stack(
         children: [
-          Obx(() {
-            bool isConnectionReady =
-                callController.isSocketReady.value &&
-                callController.isPeerConnectionReady.value;
-            if (isConnectionReady) {
-              return buildRemoteFrame();
-            } else {
-              return const Center(
-                child: Text(
-                  "Setting up the connection...",
-                  style: TextStyle(fontSize: 18),
+          //* 1. Remote Video
+          Positioned.fill(
+            child: Obx(() {
+              if (callController.isConnected.value) {
+                return RTCVideoView(
+                  callController.remoteRenderer,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+                );
+              } else {
+                return buildWaitingScreen(context);
+              }
+            }),
+          ),
+
+          //* 2. Local Video
+          Positioned(
+            right: 35,
+            top: 35,
+            child: Container( // shadow
+              width: 140,
+              height: 105,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.white),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black,
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: ClipRRect( // clip the corner
+                borderRadius: BorderRadius.circular(15),
+                child: RTCVideoView(
+                  callController.localRenderer,
+                  mirror: true,
+                  objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
                 ),
-              );
-            }
-          }),
-          buildLocalFrame(),
+              ),
+            ),
+          ),
+
+          //* 3. Control Bar
+          Positioned(
+            bottom: 30,
+            left: 0, right: 0 ,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.grey[900]!.withValues(alpha: 0.8),
+                  borderRadius: BorderRadius.circular(50),
+                ),
+                child: Row(
+                  // mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min, // 
+                  children: [
+                    IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white24,
+                        foregroundColor: Colors.white
+                      ),
+                      icon: Icon(Icons.mic),
+                      onPressed: callController.toggleMic,
+                    ),
+                    SizedBox(width: 20,),
+                    IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white
+                      ),
+                      icon: Icon(Icons.video_call),
+                      onPressed: callController.startCall,
+                      // color: Colors.green,
+                    ),
+                    SizedBox(width: 20,),
+                    IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                        foregroundColor: Colors.white
+                      ),
+                      icon: Icon(Icons.call_end),
+                      onPressed: Get.back,
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          //* 4. Room Id
+          Positioned(
+            top: 35,
+            left: 35,
+            child: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                "ID: $roomId",
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Stack buildRemoteFrame() {
-    return Stack(
-      children: [
-        Obx(() {
-          if (callController.isConnected.value) {
-            callController.startCall();
-            //! temporary fix startCall() bug, 
-            //! so just startCall() second time right here...
-            return RTCVideoView(
-              callController.remoteRenderer,
-              objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-            );
-          } else {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 10),
-                  Text(
-                    "Waiting for partner...",
-                    style: TextStyle(fontSize: 18),
-                  ),
-                ],
-              ),
-            );
-          }
-        }),
-
-        Positioned(
-          bottom: 30,
-          left: 0,
-          right: 0,
-          child: Row(
+  Widget buildWaitingScreen(BuildContext context) {
+    return Container(
+      color: Colors.blueGrey[900],
+      child: Center(
+        child: Obx(() {
+          bool isPcAndSocketReady =
+              callController.isSocketReady.value &&
+              callController.isPeerConnectionReady.value;
+          return Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              FloatingActionButton(
-                backgroundColor: Colors.green,
-                onPressed: () => callController.startCall(),
-                child: const Icon(Icons.videocam),
+              CircularProgressIndicator(
+                color: isPcAndSocketReady
+                    ? Colors.greenAccent
+                    : Colors.redAccent,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                isPcAndSocketReady
+                    ? "Waiting for partner..."
+                    : "Setting Up Conection...",
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
               ),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Positioned buildLocalFrame() {
-    return Positioned(
-      right: 20,
-      top: 20,
-      child: SizedBox(
-        height: 90,
-        width: 120,
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.deepPurple, width: 2),
-          ),
-          child: RTCVideoView(
-            callController.localRenderer,
-            mirror: true,
-            objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
-          ),
-        ),
+          );
+        }),
       ),
     );
   }
