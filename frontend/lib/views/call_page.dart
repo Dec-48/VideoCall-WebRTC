@@ -59,6 +59,9 @@ class _CallScreenState extends State<CallPage> {
       children: [
         Obx(() {
           if (callController.isConnected.value) {
+            callController.startCall();
+            //! temporary fix startCall() bug, 
+            //! so just startCall() second time right here...
             return RTCVideoView(
               callController.remoteRenderer,
               objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
@@ -69,7 +72,7 @@ class _CallScreenState extends State<CallPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   CircularProgressIndicator(),
-                  SizedBox(height: 10,),
+                  SizedBox(height: 10),
                   Text(
                     "Waiting for partner...",
                     style: TextStyle(fontSize: 18),

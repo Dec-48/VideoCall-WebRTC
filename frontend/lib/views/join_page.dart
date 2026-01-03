@@ -12,7 +12,6 @@ class JoinPage extends StatelessWidget {
   void pressCreateRoom() async {
     String randomId = (Random().nextInt(900000) + 100000).toString();
     Get.to(() => CallPage(roomId: randomId));
-    // }
   }
 
   Future<void> pressJoinRoom() async {
