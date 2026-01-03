@@ -67,7 +67,7 @@ class CallController extends GetxController {
       peerConnection!.addTrack(track, localStream!);
     });
 
-    //* recieving track from other
+    //* receiving track from other
     peerConnection!.onTrack = (event) {
       if (event.streams.isNotEmpty) {
         remoteRenderer.srcObject = event.streams[0];
@@ -129,7 +129,7 @@ class CallController extends GetxController {
 
   Future<void> computeMessage(SignalMessage message) async {
     switch (message.type) {
-      case "offer": //* recieving offer
+      case "offer": //* receiving offer
         if (message.sdp != null) {
           final Map<String, dynamic> desc = message.sdp!;
           await peerConnection!.setRemoteDescription(
@@ -137,7 +137,7 @@ class CallController extends GetxController {
           );
 
           //* strictly add candidate to our peer connection after set remote desc
-          await flushCandidateBuffer(); 
+          await flushCandidateBuffer();
 
           RTCSessionDescription answerSdp = await peerConnection!
               .createAnswer();
@@ -146,7 +146,7 @@ class CallController extends GetxController {
           sendMessage(SignalMessage(type: "answer", sdp: answerSdp.toMap()));
         }
         break;
-      case "answer": //* recieving answer
+      case "answer": //* receiving answer
         if (message.sdp != null) {
           final Map<String, dynamic> desc = message.sdp!;
           await peerConnection!.setRemoteDescription(
@@ -157,7 +157,7 @@ class CallController extends GetxController {
           await flushCandidateBuffer();
         }
         break;
-      case "candidate": // this will be run when other recieved our offer and found thier iceCandidate(path way)
+      case "candidate": // this will be run when other received our offer and found thier iceCandidate(path way)
         if (message.candidate != null && peerConnection != null) {
           final data = message.candidate!;
           final candidate = RTCIceCandidate(
@@ -168,7 +168,6 @@ class CallController extends GetxController {
           final currentRemoteDesc = await peerConnection
               ?.getRemoteDescription();
           if (currentRemoteDesc != null) {
-
             //* strictly add candidate to our peer connection after set remote desc
             await peerConnection!.addCandidate(candidate);
           } else {
