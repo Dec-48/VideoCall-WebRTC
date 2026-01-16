@@ -29,7 +29,9 @@ class RoomController(private val roomService: RoomService) { //Constructor Synta
     }
 
     @PostMapping //to ensure that the room has been created
-    fun createRoom(): ResponseEntity<Map<String, String>> { // this one should use sessionId or whatever that can classify for other
+    fun createRoom(): ResponseEntity<Map<String, String>> {
+        // this one should include sessionId or whatever that can classify this client from other
+        // for instance, Authentication(login logout)
         val newRoomId = roomService.createRoom()
         return ResponseEntity.ok(mapOf("roomId" to newRoomId))
     }

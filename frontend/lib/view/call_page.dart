@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
-import 'package:frontend/controllers/call_controller.dart';
+import 'package:frontend/controller/call_controller.dart';
 import 'package:get/get.dart';
 
 class CallPage extends StatefulWidget {
@@ -37,6 +37,9 @@ class _CallScreenState extends State<CallPage> {
           Positioned.fill(
             child: Obx(() {
               if (callController.isConnected.value) {
+                callController.startCall();
+                //! temporary fix startCall() bug, 
+                //! so just startCall() second time right here...
                 return RTCVideoView(
                   callController.remoteRenderer,
                   objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,

@@ -1,27 +1,65 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:frontend/views/call_page.dart';
+import 'package:frontend/service/room_service.dart';
+import 'package:frontend/view/call_page.dart';
 import 'package:get/get.dart';
 
 class JoinPage extends StatelessWidget {
   JoinPage({super.key});
 
   final roomController = TextEditingController();
+  final roomService = RoomService();
 
   void pressCreateRoom() async {
-    String randomId = (Random().nextInt(900000) + 100000).toString();
-    Get.to(() => CallPage(roomId: randomId));
-  }
-
-  Future<void> pressJoinRoom() async {
-    if (roomController.text.trim().isNotEmpty) {
-      Get.to(() => CallPage(roomId: roomController.text.trim()));
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+    String? roomId = await roomService.createRoom();
+    Get.back(); // loaded
+    if (roomId != null) {
+      Get.to(() => CallPage(roomId: roomId));
     } else {
       Get.snackbar(
         "Error",
-        "Enter Valid Room ID",
-        duration: Duration(seconds: 1),
+        "Failed to connect to server. Is Backend running?",
+        backgroundColor: Colors.red.withValues(alpha: 0.5),
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> pressJoinRoom() async {
+    final roomId = roomController.text.trim();
+    if (roomId.isEmpty) {
+      Get.snackbar("Error", "Enter Valid Room ID");
+      return;
+    }
+
+    Get.dialog(
+      const Center(child: CircularProgressIndicator()),
+      barrierDismissible: false,
+    );
+
+    final stats = await roomService.getRoomStats(roomId);
+
+    Get.back();
+
+    if (stats != null) {
+      if (stats['isFull'] == true) {
+        Get.snackbar(
+          "Room Full",
+          "This room already has 2 participants.",
+          backgroundColor: Colors.orange.withValues(alpha: 0.5),
+        );
+      } else {
+        Get.to(() => CallPage(roomId: roomId));
+      }
+    } else {
+      Get.snackbar(
+        "Not Found",
+        "Room ID '$roomId' does not exist.",
+        backgroundColor: Colors.red.withValues(alpha: 0.5),
+        colorText: Colors.white,
       );
     }
   }
@@ -30,11 +68,11 @@ class JoinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: IconButton(
-            icon: Icon(Get.isDarkMode ? Icons.light_mode : Icons.dark_mode),
-            onPressed: () => Get.changeThemeMode(
-              Get.isDarkMode ? ThemeMode.light : ThemeMode.dark,
-            ),
-          ),
+        icon: Icon(Get.isDarkMode ? Icons.light_mode : Icons.dark_mode),
+        onPressed: () => Get.changeThemeMode(
+          Get.isDarkMode ? ThemeMode.light : ThemeMode.dark,
+        ),
+      ),
       body: Center(
         child: ConstrainedBox(
           //* ensure width is not exceed 900
@@ -62,7 +100,7 @@ class JoinPage extends StatelessWidget {
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 5,),
+                    const SizedBox(height: 5),
                     Text(
                       "WebRTC + WebSocket\n(Supports 1-on-1 calls only)",
                       style: Theme.of(
