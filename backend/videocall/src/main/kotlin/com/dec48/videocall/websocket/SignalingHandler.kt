@@ -1,7 +1,9 @@
 package com.dec48.videocall.websocket
 
-import com.dec48.videocall.models.SignalMessage
+import com.dec48.videocall.model.SignalMessage
+import com.dec48.videocall.service.RoomService
 import org.springframework.context.annotation.Configuration
+import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
@@ -10,15 +12,10 @@ import org.springframework.web.socket.config.annotation.WebSocketConfigurer
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 import org.springframework.web.socket.handler.TextWebSocketHandler
 import tools.jackson.databind.ObjectMapper
-import java.util.concurrent.ConcurrentHashMap
 
-class SignalingHandler : TextWebSocketHandler() {
+@Component                          //autowire right here
+class SignalingHandler(private val roomService: RoomService) : TextWebSocketHandler() {
 
-    //* session id -> room id
-    private val roomIdMap = ConcurrentHashMap<String, String>()
-
-    //* room id -> list<session>
-    private val sessionsMap = ConcurrentHashMap<String, MutableList<WebSocketSession>>()
     private val objMapper = ObjectMapper()
     private val validTypes = setOf("join", "offer", "candidate", "answer")
 
@@ -30,19 +27,17 @@ class SignalingHandler : TextWebSocketHandler() {
             if (signalMessage.type == "join") { // join to specific room
                 val roomId = signalMessage.roomId
                 if (roomId != null) {
-                    roomIdMap[session.id] = roomId
-                    sessionsMap.computeIfAbsent(roomId) { ArrayList() }.add(session)
+                    val success = roomService.joinRoom(roomId, session)
+                    if (success) println("WS: User ${session.id} joined room $roomId")
+                    else println("WS: Join failed for ${session.id} (Room full or not found)")
                 }
             } else { // broadcast to everyone in the same room except myself
-                val roomId = roomIdMap[session.id] // roomId shouldn't be null right here
+                val roomId = roomService.getRoomId(session.id)
                 if (roomId != null) {
-                    val clients = sessionsMap[roomId] // clients shouldn't null right here too
-                    if (clients != null) {
-                        for (client in clients) {
-                            if (client.isOpen && client.id != session.id) {
-                                println("${client.id} -> ${message.payload} ")
-                                client.sendMessage(message) // forward the message
-                            }
+                    val room = roomService.getRoom(roomId)
+                    for (client in room) {
+                        if (client.isOpen && client.id != session.id) { // except your self
+                            client.sendMessage(message)
                         }
                     }
                 }
@@ -54,25 +49,19 @@ class SignalingHandler : TextWebSocketHandler() {
     }
 
     override fun afterConnectionEstablished(session: WebSocketSession) {
-        println("New Connection: ${session.id}")
+        println("WS: New Connection: ${session.id}")
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
-        val roomId = roomIdMap.remove(session.id)
-        if (roomId != null) { // delete it!!!
-            sessionsMap[roomId]?.remove(session)
-            if (sessionsMap[roomId]?.isEmpty() == true) {
-                sessionsMap.remove(roomId) // clear out the empty room
-            }
-        }
-        println("Disconnected: ${session.id}")
+        val roomId = roomService.removeClient(session)
+        println("WS: Disconnected: ${session.id} (Room: $roomId)")
     }
 }
 
 @Configuration
-@EnableWebSocket
-class WSConfig : WebSocketConfigurer {
+@EnableWebSocket            // autowire right here
+class WSConfig(private val signalingHandler: SignalingHandler) : WebSocketConfigurer {
     override fun registerWebSocketHandlers(registry: WebSocketHandlerRegistry) {
-        registry.addHandler(SignalingHandler(), "/socket").setAllowedOrigins("*")
+        registry.addHandler(signalingHandler, "/socket").setAllowedOrigins("*")
     }
 }

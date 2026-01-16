@@ -1,4 +1,4 @@
-package com.dec48.videocall.models
+package com.dec48.videocall.model
 
 data class SignalMessage(
     val type: String,
