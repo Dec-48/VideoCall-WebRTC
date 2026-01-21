@@ -26,11 +26,12 @@ dependencies {
 	implementation("tools.jackson.module:jackson-module-kotlin")
 
 //  db
-//	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-//	implementation("org.springframework.boot:spring-boot-starter-jdbc")
-//	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-//	testImplementation("org.springframework.boot:spring-boot-starter-jdbc-test")
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.xerial:sqlite-jdbc:3.45.1.0")
+	implementation("org.hibernate.orm:hibernate-community-dialects:6.4.4.Final")
 
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
