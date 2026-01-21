@@ -9,5 +9,4 @@ class VideocallApplicationTests {
 	@Test
 	fun contextLoads() {
 	}
-
 }
