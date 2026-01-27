@@ -24,6 +24,15 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
+	developmentOnly("org.springframework.boot:spring-boot-devtools")
+
+//  db
+	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.xerial:sqlite-jdbc:3.45.1.0")
+	implementation("org.hibernate.orm:hibernate-community-dialects:6.4.4.Final")
+
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
@@ -38,4 +47,5 @@ kotlin {
 
 tasks.withType<Test> {
 	useJUnitPlatform()
+	jvmArgs("-XX:+EnableDynamicAgentLoading", "-Dmockito.mock.allow-self-attachment=true") //! temporary fox
 }
