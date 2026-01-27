@@ -1,13 +1,17 @@
 package com.dec48.videocall.service
 
 import com.dec48.videocall.model.RoomStats
+import com.dec48.videocall.repository.CallLog
+import com.dec48.videocall.repository.CallLogRepository
 import org.springframework.stereotype.Service
 import org.springframework.web.socket.WebSocketSession
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
-class RoomService {
+class RoomService(
+    private val callLogRepository: CallLogRepository
+) {
     //* session id -> room id
     private val roomIdMap = ConcurrentHashMap<String, String>()
 
@@ -30,6 +34,11 @@ class RoomService {
             room.add(client)
         }
         roomIdMap[client.id] = roomId
+        val callLog = CallLog(
+            roomId = roomId,
+            clientId = client.id
+        )
+        callLogRepository.save(callLog)
         return true // success
     }
 
