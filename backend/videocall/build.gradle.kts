@@ -21,20 +21,26 @@ repositories {
 
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
+	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
+	testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
-	developmentOnly("org.springframework.boot:spring-boot-devtools")
+	//  db
+//	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+//	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+//	implementation("org.xerial:sqlite-jdbc:3.45.1.0")
+//	implementation("org.hibernate.orm:hibernate-community-dialects:6.4.4.Final")
 
-//  db
-	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-	implementation("org.xerial:sqlite-jdbc:3.45.1.0")
-	implementation("org.hibernate.orm:hibernate-community-dialects:6.4.4.Final")
+	implementation("io.jsonwebtoken:jjwt-api:0.13.0")
+	implementation("io.jsonwebtoken:jjwt-impl:0.13.0")
+	implementation("io.jsonwebtoken:jjwt-jackson:0.13.0")
+	implementation("org.springframework.boot:spring-boot-starter-security")
+	testImplementation("org.springframework.boot:spring-boot-starter-security-test")
+
+//	developmentOnly("org.springframework.boot:spring-boot-devtools")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
-	testImplementation("org.springframework.boot:spring-boot-starter-websocket-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

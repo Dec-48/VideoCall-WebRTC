@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.server.ResponseStatusException
 
 @RestController
 @RequestMapping("/api/rooms")
@@ -21,10 +22,11 @@ class RoomController(private val roomService: RoomService) { //Constructor Synta
     }
 
     @GetMapping("/{roomId}")
-    fun getRoomStats(@PathVariable roomId: String) : ResponseEntity<Any> {
-        val roomStats = roomService.getRoomStats(roomId) ?:
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(mapOf("error" to "Room not found"))
+    fun getRoomStats(@PathVariable roomId: String) : ResponseEntity<RoomStats> {
+        val roomStats = roomService.getRoomStats(roomId) ?: throw ResponseStatusException(
+            HttpStatus.NOT_FOUND,
+            mapOf("error" to "Room not found").toString()
+        )
         return ResponseEntity.ok(roomStats)
     }
 
