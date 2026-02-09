@@ -1,4 +1,4 @@
-package com.dec48.videocall.service.authentication
+package com.dec48.videocall.security
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Component

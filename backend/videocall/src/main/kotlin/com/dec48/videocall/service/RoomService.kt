@@ -25,12 +25,15 @@ class RoomService {
 
     fun joinRoom(roomId: String, client: WebSocketSession): Boolean {
         val room = roomMap[roomId] ?: return false // Room doesn't exist
-        synchronized(room) {
-            if (room.size >= 2) return false // full
-            room.add(client)
+        return synchronized(room) {
+            if (room.size >= 2) {
+                false
+            } else {
+                room.add(client)
+                roomIdMap[client.id] = roomId
+                true
+            }
         }
-        roomIdMap[client.id] = roomId
-        return true // success
     }
 
     fun removeClient(client: WebSocketSession): String ? {

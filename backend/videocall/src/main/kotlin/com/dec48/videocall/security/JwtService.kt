@@ -1,4 +1,4 @@
-package com.dec48.videocall.service.authentication
+package com.dec48.videocall.security
 
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
@@ -17,18 +17,18 @@ class JwtService(
     private val accessTokenValidityMs = 15L * 60L * 1000L
     val refreshTokenValidityMs = 30L * 24L * 60L * 60L * 1000L
 
-    private fun generateToken(userId: String, type: String, expiry: Long): String {
+    private fun generateToken(userId: Int, type: String, expiry: Long): String {
         val now = Date()
         val expiryDate = Date(now.time + expiry)
-        return Jwts.builder().subject(userId).claim("type", type).issuedAt(now).expiration(expiryDate)
+        return Jwts.builder().subject(userId.toString()).claim("type", type).issuedAt(now).expiration(expiryDate)
             .signWith(secretKey, Jwts.SIG.HS256).compact()
     }
 
-    fun generateAccessToken(userId: String): String {
+    fun generateAccessToken(userId: Int): String {
         return generateToken(userId, "access", accessTokenValidityMs)
     }
 
-    fun generateRefreshToken(userId: String): String {
+    fun generateRefreshToken(userId: Int): String {
         return generateToken(userId, "refresh", refreshTokenValidityMs)
     }
 

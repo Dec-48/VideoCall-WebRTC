@@ -23,6 +23,11 @@ class UserRepository {
         return user
     }
 
+    fun findById(userId : Int) : User? {
+        val user = users.find { it.id == userId }
+        return user
+    }
+
     fun findByEmail(email: String): User? {
         val user = users.find { it.email == email }
         return user

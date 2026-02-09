@@ -1,4 +1,4 @@
-package com.dec48.videocall.service.authentication
+package com.dec48.videocall.security
 
 import com.dec48.videocall.model.RefreshToken
 import com.dec48.videocall.model.User
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service
 import org.springframework.web.server.ResponseStatusException
 import java.security.MessageDigest
 import java.time.Instant
-import java.util.Base64
+import java.util.*
 
 @Service
 class AuthService(
@@ -28,7 +28,9 @@ class AuthService(
     fun register(email: String, password: String): User {
         val user = userRepository.findByEmail(email)
         if (user != null) {
-            throw ResponseStatusException(HttpStatus.CONFLICT, "A user with that email already exists.")
+            throw ResponseStatusException(
+                HttpStatus.CONFLICT, "A user with that email already exists."
+            )
         }
         return userRepository.save(
             email = email,
@@ -44,8 +46,8 @@ class AuthService(
             throw BadCredentialsException("Invalid credentials.")
         }
 
-        val newAccessToken = jwtService.generateAccessToken(user.id.toHexString())
-        val newRefreshToken = jwtService.generateRefreshToken(user.id.toHexString())
+        val newAccessToken = jwtService.generateAccessToken(user.id)
+        val newRefreshToken = jwtService.generateRefreshToken(user.id)
 
         storeRefreshToken(user.id, newRefreshToken)
 
@@ -56,14 +58,17 @@ class AuthService(
     }
 
     fun refresh(refreshToken: String): TokenPair {
-        if(!jwtService.isRefreshTokenValid(refreshToken)) {
+        if (!jwtService.isRefreshTokenValid(refreshToken)) {
             throw ResponseStatusException(HttpStatusCode.valueOf(401), "Invalid refresh token.")
         }
 
-        val userId = jwtService.getUserIdFromToken(refreshToken)
-        val user = userRepository.findById(userId).orElseThrow {
-            ResponseStatusException(HttpStatusCode.valueOf(401), "Invalid refresh token.")
-        }
+        val userIdStr = jwtService.getUserIdFromToken(refreshToken) // return as string
+        val userId = userIdStr.toIntOrNull() ?: throw ResponseStatusException(
+            HttpStatus.UNAUTHORIZED, // userId must always be an Integer
+            "Invalid user ID in token."
+        )
+        val user = userRepository.findById(userId)
+            ?: throw ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found.")
 
         val hashed = hashToken(refreshToken)
         refreshTokenRepository.findByUserIdAndHashedToken(user.id, hashed)
